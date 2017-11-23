@@ -1,29 +1,28 @@
-//packages
+// include required node packages
 var inquirer = require('inquirer');
-var mysql = require('mysql');
-require('console.table');
+var mysql = require("mysql");
+require("console.table");
 
-//database connection
+// connect to database
 var connection = mysql.createConnection({
-  host: 'localhost',
+  host: "localhost",
   port: 8889,
-  user: 'root',
-  password: '',
+  user: "root",
+  password: 'root',
   database: 'bamazon'
 });
 
 connection.connect(function(err) {
   if (err) throw err;
-  //call placeOrder function here
-  placeOrder();
+  placeOrder(); // call placeOrder() upon connection
 });
 
-//start variables
-
+// initialize variables
 var sellItem = "";
 var sellQty = 0;
 var totalPurchase = 0;
 var itemDept = "";
+
 
 var placeOrder = function() {
   // query products table and display results using console.table
@@ -43,10 +42,10 @@ var placeOrder = function() {
       }).then(function(answer) {
         sellQty = answer.qty;
         // query products table for quantity available for requested item and compare to quantity requested
-        connection.query("SELECT department_name, quantity FROM products WHERE ? ", [{
-          item_id: selItem
+        connection.query("SELECT department_name, stock_quantity FROM products WHERE ? ", [{
+          item_id: sellItem
         }], function(err, res) {
-          if (res[0].quantity < sellQty) { // not enough product
+          if (res[0].stock_quantity < sellQty) { // not enough product
             console.log('');
             console.log('**************************');
             console.log('* Insufficient quantity! *');
@@ -56,26 +55,26 @@ var placeOrder = function() {
           } else { //
             itemDept = res[0].department_name; // determine dept name for requested item
             // update inventory for requested item
-            connection.query("UPDATE products SET quantity = quantity - ? WHERE ?", [sellQty, {
-              item_id: selItem
+            connection.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE ?", [sellQty, {
+              item_id: sellItem
             }], function(err, res) {
               if (err) throw err;
               // get numeric value for total purchase
               connection.query("SELECT price * ? as 'tot_no_format' from products  WHERE ?", [sellQty, {
-                item_id: selItem
+                item_id: sellItem
               }], function(err, res) {
                 if (err) throw err;
                 totalPurchase = res[0].tot_no_format;
                 // get formatted purchase total and display to console
                 connection.query("SELECT concat('$', format(price * ?, 2)) as 'Total_Paid' from products  WHERE ?", [sellQty, {
-                  item_id: selItem
+                  item_id: sellItem
                 }], function(err, res) {
                   if (err) throw err;
                   console.log('');
                   console.table(res);
                   // update sales in products table
                   connection.query("UPDATE products SET product_sales = product_sales + ? WHERE ?", [totalPurchase, {
-                    item_id: selItem
+                    item_id: sellItem
                   }], function(err, res) {
                     if (err) throw err;
                     // update sales in departments table
